@@ -3,18 +3,19 @@ Should emit:
 B014 - on lines 11, 17, 28, 42, 49, 56, and 74.
 """
 
+
 import binascii
 import re
 
 try:
     pass
-except (Exception, TypeError):
+except Exception:
     # TypeError is a subclass of Exception, so it doesn't add anything
     pass
 
 try:
     pass
-except (OSError, OSError) as err:
+except OSError as err:
     # Duplicate exception types are useless
     pass
 
@@ -39,7 +40,7 @@ except (MyError, Exception) as e:
 
 try:
     pass
-except (MyError, BaseException) as e:
+except BaseException as e:
     # But we *can* assume that everything is a subclass of BaseException
     pass
 

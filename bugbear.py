@@ -180,7 +180,7 @@ def _to_name_str(node):
     if isinstance(node, ast.Call):
         return _to_name_str(node.func)
     try:
-        return _to_name_str(node.value) + "." + node.attr
+        return f'{_to_name_str(node.value)}.{node.attr}'
     except AttributeError:
         return _to_name_str(node.value)
 
@@ -246,8 +246,8 @@ class BugBearVisitor(ast.NodeVisitor):
             )
         elif isinstance(node.type, ast.Tuple):
             names = [_to_name_str(e) for e in node.type.elts]
-            as_ = " as " + node.name if node.name is not None else ""
-            if len(names) == 0:
+            as_ = f' as {node.name}' if node.name is not None else ""
+            if not names:
                 vs = ("`except (){}:`".format(as_),)
                 self.errors.append(B001(node.lineno, node.col_offset, vars=vs))
             elif len(names) == 1:
@@ -273,11 +273,14 @@ class BugBearVisitor(ast.NodeVisitor):
                         good = [g for g in good if g not in equivalents]
 
                 for name, other in itertools.permutations(tuple(good), 2):
-                    if _typesafe_issubclass(
-                        getattr(builtins, name, type), getattr(builtins, other, ())
+                    if (
+                        _typesafe_issubclass(
+                            getattr(builtins, name, type),
+                            getattr(builtins, other, ()),
+                        )
+                        and name in good
                     ):
-                        if name in good:
-                            good.remove(name)
+                        good.remove(name)
                 if good != names:
                     desc = good[0] if len(good) == 1 else "({})".format(", ".join(good))
                     self.errors.append(
@@ -326,9 +329,12 @@ class BugBearVisitor(ast.NodeVisitor):
     def visit_Assign(self, node):
         if len(node.targets) == 1:
             t = node.targets[0]
-            if isinstance(t, ast.Attribute) and isinstance(t.value, ast.Name):
-                if (t.value.id, t.attr) == ("os", "environ"):
-                    self.errors.append(B003(node.lineno, node.col_offset))
+            if (
+                isinstance(t, ast.Attribute)
+                and isinstance(t.value, ast.Name)
+                and (t.value.id, t.attr) == ("os", "environ")
+            ):
+                self.errors.append(B003(node.lineno, node.col_offset))
         self.generic_visit(node)
 
     def visit_For(self, node):
@@ -579,16 +585,15 @@ class BugBearVisitor(ast.NodeVisitor):
             else:
                 expected_first_args = B902.cls
                 kind = "metaclass instance"
-        else:
-            if (
+        elif (
                 "classmethod" in decorators.names
                 or node.name in B902.implicit_classmethods  # noqa: W503
             ):
-                expected_first_args = B902.cls
-                kind = "class"
-            else:
-                expected_first_args = B902.self
-                kind = "instance"
+            expected_first_args = B902.cls
+            kind = "class"
+        else:
+            expected_first_args = B902.self
+            kind = "instance"
 
         args = getattr(node.args, "posonlyargs", []) + node.args.args
         vararg = node.args.vararg
@@ -600,15 +605,15 @@ class BugBearVisitor(ast.NodeVisitor):
             lineno = args[0].lineno
             col = args[0].col_offset
         elif vararg:
-            actual_first_arg = "*" + vararg.arg
+            actual_first_arg = f'*{vararg.arg}'
             lineno = vararg.lineno
             col = vararg.col_offset
         elif kwarg:
-            actual_first_arg = "**" + kwarg.arg
+            actual_first_arg = f'**{kwarg.arg}'
             lineno = kwarg.lineno
             col = kwarg.col_offset
         elif kwonlyargs:
-            actual_first_arg = "*, " + kwonlyargs[0].arg
+            actual_first_arg = f'*, {kwonlyargs[0].arg}'
             lineno = kwonlyargs[0].lineno
             col = kwonlyargs[0].col_offset
         else:

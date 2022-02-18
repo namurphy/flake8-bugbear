@@ -3,27 +3,26 @@ Should emit:
 B015 - on lines 8, 12, 22, 29
 """
 
-assert 1 == 1
 
-1 == 1
+assert True
 
-assert 1 in (1, 2)
+True
 
-1 in (1, 2)
+assert 1 in {1, 2}
 
-
-if 1 == 2:
-    pass
+1 in {1, 2}
 
 
 def test():
-    assert 1 in (1, 2)
+    assert 1 in {1, 2}
 
-    1 in (1, 2)
+    1 in {1, 2}
 
 
 data = [x for x in [1, 2, 3] if x in (1, 2)]
 
 
+
+
 class TestClass:
-    1 == 1
+    True
